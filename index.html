@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petualangan Literasi 3D - TK A/B</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Fredoka', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #38bdf8;
+        }
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        /* Cute Kid Button Style */
+        .btn-kid {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+            transform: translateY(0);
+        }
+        .btn-kid:active {
+            transform: translateY(5px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.25);
+        }
+        .btn-kid:hover {
+            filter: brightness(1.06);
+        }
+        /* Floating Animation */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+        /* Pulse Glow */
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+            70% { transform: scale(1.03); box-shadow: 0 0 0 15px rgba(250, 204, 21, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+        }
+        .pulse-yellow {
+            animation: pulseRing 2s infinite;
+        }
+        /* Custom Scrollbar for Modals */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fef9c3;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 10px;
+        }
+        /* Print styles for certificate */
+        @media print {
+            body * { visibility: hidden; }
+            #certificate-card, #certificate-card * { visibility: visible; }
+            #certificate-card {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                box-shadow: none;
+            }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="relative w-full h-full overflow-hidden">
+
+    <!-- 3D Three.js Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- 2D Confetti & Star Celebration Canvas -->
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- 1. LOGIN & WELCOME MODAL -->
+    <div id="login-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-gradient-to-b from-sky-400/90 via-teal-300/90 to-emerald-400/90 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl border-8 border-yellow-400 shadow-2xl max-w-lg w-full p-6 md:p-8 text-center relative animate-float">
+            <!-- Decorative Top Badge -->
+            <div class=" -mt-14 mb-2 inline-block bg-gradient-to-r from-orange-400 to-pink-500 text-white px-6 py-2 rounded-full border-4 border-white shadow-lg text-lg md:text-xl font-bold">
+                🌟 Edisi TK A & TK B 🌟
+            </div>
+
+            <h1 class="text-3xl md:text-5xl font-bold text-sky-600 drop-shadow-sm mt-1">
+                PETUALANGAN<br><span class="text-pink-500">LITERASI 3D</span>
+            </h1>
+            <p class="text-gray-600 mt-2 text-sm md:text-base">
+                Jelajahi Taman 3D, Temukan Huruf, Suku Kata, & Membaca Ceria!
+            </p>
+
+            <!-- Avatar Picker -->
+            <div class="mt-5">
+                <p class="text-sm font-bold text-sky-800 mb-2">PILIH GAYA KARAKTER ROBLOX-MU:</p>
+                <div class="flex justify-center gap-3" id="avatar-selector">
+                    <button type="button" onclick="selectAvatar('roblox_quran', '#ef4444', '👦🏻')" class="avatar-btn ring-4 ring-pink-500 bg-red-50 hover:bg-red-100 p-3 rounded-2xl border-4 border-red-400 text-3xl transition transform scale-105" data-avatar="roblox_quran">
+                        👦🏻📕<span class="block text-xs font-bold text-red-900 mt-1">Bawa Buku</span>
+                    </button>
+                    <button type="button" onclick="selectAvatar('roblox_tas', '#3b82f6', '👦🏻')" class="avatar-btn bg-slate-100 hover:bg-slate-200 p-3 rounded-2xl border-4 border-slate-400 text-3xl transition" data-avatar="roblox_tas">
+                        👦🏻🎒<span class="block text-xs font-bold text-slate-900 mt-1">Ransel Camo</span>
+                    </button>
+                    <button type="button" onclick="selectAvatar('roblox_ceria', '#10b981', '👦🏻')" class="avatar-btn bg-emerald-50 hover:bg-emerald-100 p-3 rounded-2xl border-4 border-emerald-400 text-3xl transition" data-avatar="roblox_ceria">
+                        👦🏻✨<span class="block text-xs font-bold text-emerald-900 mt-1">Santri Ceria</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Child Name Input -->
+            <div class="mt-5">
+                <label class="block text-sm font-bold text-sky-800 mb-2" for="player-name-input">SIAPA NAMAMU, ANAK HEBAT?</label>
+                <input id="player-name-input" type="text" maxlength="18" placeholder="Ketik namamu di sini..." 
+                    class="w-full px-5 py-3 text-xl font-bold text-center text-sky-900 bg-yellow-50 border-4 border-sky-300 rounded-2xl focus:outline-none focus:border-pink-500"
+                    value="Budi">
+            </div>
+
+            <button onclick="startGame()" class="btn-kid mt-6 w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white text-2xl font-bold py-4 rounded-2xl border-4 border-white shadow-xl flex items-center justify-center gap-3">
+                <span>🚀 MULAI PETUALANGAN!</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. TOP HUD (Profile, Stars, Audio Controls, Progress & Certificate) -->
+    <div id="hud-top" class="ui-layer inset-x-0 top-0 p-2 md:p-4 flex flex-col gap-2 hidden">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <!-- Player Profile & Stars -->
+            <div class="interactive flex items-center gap-2 md:gap-3 bg-white/95 backdrop-blur border-4 border-yellow-400 rounded-2xl px-3 py-1.5 shadow-lg">
+                <span id="hud-avatar-emoji" class="text-2xl md:text-3xl bg-red-100 p-1.5 rounded-xl border-2 border-red-300">👦🏻</span>
+                <div>
+                    <div class="text-xs text-gray-500 font-bold leading-none">PETUALANG</div>
+                    <div id="hud-player-name" class="text-base md:text-lg font-bold text-sky-800 leading-tight">Budi</div>
+                </div>
+                <div class="h-8 w-1 bg-yellow-200 rounded-full mx-1"></div>
+                <div class="flex items-center gap-1.5 bg-yellow-100 px-3 py-1 rounded-xl border-2 border-yellow-400">
+                    <span class="text-xl md:text-2xl animate-bounce">⭐</span>
+                    <span id="hud-stars" class="text-lg md:text-xl font-bold text-amber-700">0</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons (Audio, Dictionary, Progress, Certificate) -->
+            <div class="interactive flex items-center gap-1.5 md:gap-2">
+                <button onclick="speakCurrentZoneHint()" title="Dengarkan Petunjuk" class="btn-kid bg-sky-500 text-white px-3 py-2 rounded-2xl border-2 border-white font-bold text-xs md:text-sm flex items-center gap-1">
+                    <span>🔊</span> <span class="hidden sm:inline">Petunjuk</span>
+                </button>
+                <button onclick="openDictionaryModal()" title="Kamus Huruf & Suku Kata" class="btn-kid bg-purple-500 text-white px-3 py-2 rounded-2xl border-2 border-white font-bold text-xs md:text-sm flex items-center gap-1">
+                    <span>📖</span> <span class="hidden sm:inline">Kamus Bunyi</span>
+                </button>
+                <button onclick="openProgressModal()" title="Rekap Progres Belajar" class="btn-kid bg-amber-500 text-white px-3 py-2 rounded-2xl border-2 border-white font-bold text-xs md:text-sm flex items-center gap-1">
+                    <span>📊</span> <span class="hidden sm:inline">Rekap</span>
+                </button>
+                <button onclick="openCertificateModal()" title="Sertifikat Juara" class="btn-kid bg-pink-500 text-white px-3 py-2 rounded-2xl border-2 border-white font-bold text-xs md:text-sm flex items-center gap-1">
+                    <span>🎓</span> <span class="hidden sm:inline">Sertifikat</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4 Stage Level Selector Pills -->
+        <div class="interactive flex items-center justify-center gap-1.5 md:gap-3 overflow-x-auto py-1">
+            <button onclick="teleportToZone(1)" id="zone-btn-1" class="btn-kid flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-2xl border-4 border-white font-bold text-xs md:text-sm bg-emerald-500 text-white shadow">
+                <span>🔤</span> <span>1. Dunia Huruf (A-Z)</span>
+            </button>
+            <button onclick="teleportToZone(2)" id="zone-btn-2" class="btn-kid flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-2xl border-4 border-white font-bold text-xs md:text-sm bg-amber-500 text-white shadow">
+                <span>🧩</span> <span>2. Suku Kata (BA-BI-BU)</span>
+            </button>
+            <button onclick="teleportToZone(3)" id="zone-btn-3" class="btn-kid flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-2xl border-4 border-white font-bold text-xs md:text-sm bg-pink-500 text-white shadow">
+                <span>🖼️</span> <span>3. Misi Kata</span>
+            </button>
+            <button onclick="teleportToZone(4)" id="zone-btn-4" class="btn-kid flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-2xl border-4 border-white font-bold text-xs md:text-sm bg-purple-600 text-white shadow">
+                <span>👑</span> <span>4. Kalimat & Istana</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. PROXIMITY INTERACTION PROMPT (Shows when near a 3D station) -->
+    <div id="proximity-banner" class="ui-layer inset-x-0 bottom-36 md:bottom-28 flex justify-center pointer-events-none hidden">
+        <button id="proximity-btn" onclick="triggerNearbyStation()" class="interactive btn-kid pulse-yellow bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 text-amber-950 font-bold text-lg md:text-2xl px-6 py-3 rounded-3xl border-4 border-white shadow-2xl flex items-center gap-3">
+            <span id="proximity-icon" class="text-3xl">🅰️</span>
+            <div class="text-left">
+                <div class="text-xs uppercase tracking-wider text-amber-900 font-bold">Pos Belajar Ditemukan!</div>
+                <div id="proximity-title">Buka Pos Huruf A</div>
+            </div>
+            <span class="bg-white text-orange-600 px-3 py-1 rounded-xl text-sm font-extrabold">BUKA ▶</span>
+        </button>
+    </div>
+
+    <!-- 4. BOTTOM CONTROLS (Virtual Analog Joystick + Quick Action + Camera Reset) -->
+    <div id="hud-bottom" class="ui-layer inset-x-0 bottom-0 p-4 flex items-end justify-between pointer-events-none hidden">
+        <!-- Virtual Analog Joystick -->
+        <div class="interactive flex flex-col items-center">
+            <div id="joystick-zone" class="relative w-28 h-28 md:w-32 md:h-32 rounded-full bg-white/40 backdrop-blur-md border-4 border-white shadow-xl flex items-center justify-center touch-none">
+                <!-- Direction Arrows Hint -->
+                <span class="absolute top-1 text-white/80 text-xs font-bold">▲</span>
+                <span class="absolute bottom-1 text-white/80 text-xs font-bold">▼</span>
+                <span class="absolute left-1.5 text-white/80 text-xs font-bold">◀</span>
+                <span class="absolute right-1.5 text-white/80 text-xs font-bold">▶</span>
+                <!-- Stick Knob -->
+                <div id="joystick-knob" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-b from-yellow-300 to-amber-500 border-4 border-white shadow-lg pointer-events-none transition-transform duration-75"></div>
+            </div>
+            <span class="mt-1 bg-black/40 text-white text-xs px-3 py-0.5 rounded-full font-bold backdrop-blur-sm">
+                Gerakkan Karakter (Joystick / WASD)
+            </span>
+        </div>
+
+        <!-- Mission Tracker & Jump/Action Buttons -->
+        <div class="interactive flex flex-col items-end gap-2">
+            <div class="bg-white/90 backdrop-blur border-4 border-sky-400 rounded-2xl px-3.5 py-2 shadow-lg max-w-xs text-right">
+                <div class="text-xs font-bold text-sky-600 uppercase" id="current-zone-label">Area 1: Dunia Huruf A-Z</div>
+                <div class="text-xs md:text-sm font-bold text-gray-700" id="mission-hint-text">Dekati balok warna-warni di taman!</div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="jumpPlayer()" class="btn-kid bg-gradient-to-b from-sky-400 to-blue-600 text-white font-bold px-4 py-3 rounded-2xl border-4 border-white shadow-xl text-sm md:text-base">
+                    🦘 Lompat
+                </button>
+                <button onclick="findNearestUnfinishedStation()" class="btn-kid bg-gradient-to-b from-pink-400 to-rose-600 text-white font-bold px-4 py-3 rounded-2xl border-4 border-white shadow-xl text-sm md:text-base">
+                    🧭 Cari Pos Berikutnya
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. LEARNING & INTERACTIVE QUIZ MODAL (Huruf, Suku Kata, Kata, Kalimat) -->
+    <div id="activity-modal" class="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 md:p-6 hidden">
+        <div class="bg-white rounded-3xl border-8 border-yellow-400 shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-5 md:p-7 relative">
+            <!-- Close Button -->
+            <button onclick="closeActivityModal()" class="btn-kid absolute top-3 right-3 bg-rose-500 text-white w-11 h-11 rounded-2xl border-4 border-white font-bold text-xl flex items-center justify-center">
+                ✕
+            </button>
+
+            <!-- Modal Header Badge -->
+            <div id="activity-badge" class="inline-block bg-sky-100 text-sky-700 px-4 py-1 rounded-full text-xs md:text-sm font-bold border-2 border-sky-300 mb-2">
+                DUNIA HURUF A-Z
+            </div>
+
+            <!-- Dynamic Content Container -->
+            <div id="activity-content" class="text-center">
+                <!-- Populated dynamically by JavaScript -->
+            </div>
+
+            <!-- Positive Feedback Banner inside Modal -->
+            <div id="activity-feedback" class="mt-4 hidden p-4 rounded-2xl border-4 text-center font-bold text-lg"></div>
+        </div>
+    </div>
+
+    <!-- 6. KAMUS BUNYI LENGKAP MODAL (Full A-Z & Suku Kata Board) -->
+    <div id="dictionary-modal" class="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 md:p-6 hidden">
+        <div class="bg-white rounded-3xl border-8 border-purple-400 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-5 md:p-7 relative">
+            <button onclick="closeDictionaryModal()" class="btn-kid absolute top-3 right-3 bg-rose-500 text-white w-11 h-11 rounded-2xl border-4 border-white font-bold text-xl">✕</button>
+            
+            <h2 class="text-2xl md:text-3xl font-bold text-purple-700 text-center">📖 Papan Bunyi Pintar A–Z & Suku Kata</h2>
+            <p class="text-center text-gray-600 text-sm mb-4">Klik huruf atau suku kata untuk mendengarkan cara membacanya!</p>
+
+            <!-- Tabs -->
+            <div class="flex justify-center gap-2 mb-4">
+                <button onclick="switchDictTab('az')" id="dict-tab-az" class="btn-kid bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-sm">Huruf A – Z (26 Huruf)</button>
+                <button onclick="switchDictTab('suku')" id="dict-tab-suku" class="btn-kid bg-purple-100 text-purple-800 px-4 py-2 rounded-xl font-bold text-sm">Tabel Suku Kata (BA-BI-BU)</button>
+            </div>
+
+            <!-- Tab 1: A-Z Grid -->
+            <div id="dict-content-az" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5"></div>
+
+            <!-- Tab 2: Suku Kata Grid -->
+            <div id="dict-content-suku" class="hidden space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- 7. REKAP PROGRES BELAJAR MODAL -->
+    <div id="progress-modal" class="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 md:p-6 hidden">
+        <div class="bg-white rounded-3xl border-8 border-amber-400 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5 md:p-7 relative">
+            <button onclick="closeProgressModal()" class="btn-kid absolute top-3 right-3 bg-rose-500 text-white w-11 h-11 rounded-2xl border-4 border-white font-bold text-xl">✕</button>
+            
+            <h2 class="text-2xl md:text-3xl font-bold text-amber-600 text-center">📊 Laporan Progres Belajar Anak</h2>
+            <p class="text-center text-gray-500 text-sm mb-5">Rekap capaian petualangan literasi untuk Guru & Orang Tua</p>
+
+            <div id="progress-details" class="space-y-4">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. SERTIFIKAT KELULUSAN MODAL -->
+    <div id="certificate-modal" class="fixed inset-0 z-30 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 md:p-6 hidden">
+        <div class="max-w-2xl w-full">
+            <div id="certificate-card" class="bg-gradient-to-br from-yellow-50 via-white to-sky-50 rounded-3xl border-[10px] border-amber-400 shadow-2xl p-6 md:p-10 text-center relative overflow-hidden">
+                <!-- Corner Ribbons -->
+                <div class="text-4xl md:text-5xl mb-2">👑 🌟 🏆 🌟 👑</div>
+                <div class="text-xs md:text-sm font-bold tracking-widest uppercase text-amber-700 bg-amber-100 inline-block px-4 py-1 rounded-full border border-amber-300">
+                    SERTIFIKAT BINTANG LITERASI TK A/B
+                </div>
+                <h2 class="text-2xl md:text-4xl font-extrabold text-sky-700 mt-3">PIAGAM ANAK HEBAT</h2>
+                <p class="text-gray-600 text-sm md:text-base mt-2">Diberikan dengan bangga kepada:</p>
+                
+                <div id="cert-child-name" class="text-3xl md:text-5xl font-extrabold text-pink-600 my-3 py-2 border-b-4 border-dashed border-amber-400 inline-block px-8">
+                    Budi
+                </div>
+
+                <p class="text-gray-700 text-sm md:text-base max-w-lg mx-auto leading-relaxed">
+                    Telah berhasil menjelajahi <b>Taman Petualangan Literasi 3D</b>: Mengenal Huruf A–Z, Merangkai Suku Kata (BA-BI-BU-BE-BO), Membaca Kata, serta Kalimat Sederhana dengan penuh semangat!
+                </p>
+
+                <div class="grid grid-cols-3 gap-2 my-5 bg-white/90 p-3 rounded-2xl border-2 border-yellow-300 max-w-md mx-auto">
+                    <div>
+                        <div class="text-xs text-gray-500 font-bold">TOTAL BINTANG</div>
+                        <div id="cert-stars" class="text-xl md:text-2xl font-extrabold text-amber-600">⭐ 0</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500 font-bold">MISI SELESAI</div>
+                        <div id="cert-missions" class="text-xl md:text-2xl font-extrabold text-emerald-600">0 / 18</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500 font-bold">PREDIKAT</div>
+                        <div id="cert-rank" class="text-base md:text-lg font-extrabold text-purple-600">Pembaca Cilik</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-gray-500 mt-4 pt-3 border-t border-gray-200">
+                    <div>📅 Tanggal: <span id="cert-date"></span></div>
+                    <div>🏅 Petualangan Literasi 3D</div>
+                </div>
+            </div>
+
+            <div class="flex justify-center gap-3 mt-4 no-print">
+                <button onclick="window.print()" class="btn-kid bg-emerald-500 text-white font-bold px-6 py-3 rounded-2xl border-4 border-white shadow-lg flex items-center gap-2">
+                    🖨️ Cetak Sertifikat
+                </button>
+                <button onclick="closeCertificateModal()" class="btn-kid bg-rose-500 text-white font-bold px-6 py-3 rounded-2xl border-4 border-white shadow-lg">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /********************************************************************
+         * 1. DATA KURIKULUM LITERASI TK A/B (HURUF, SUKU KATA, KATA, KALIMAT)
+         ********************************************************************/
+        const ALPHABET_A_TO_Z = [
+            { letter: 'A', word: 'Ayam', emoji: '🐔', phonetic: 'a', desc: 'A untuk Ayam. Kukuruyuk!' },
+            { letter: 'B', word: 'Bola', emoji: '⚽', phonetic: 'be', desc: 'B untuk Bola. Bola bundar!' },
+            { letter: 'C', word: 'Cicak', emoji: '🦎', phonetic: 'ce', desc: 'C untuk Cicak di dinding.' },
+            { letter: 'D', word: 'Domba', emoji: '🐑', phonetic: 'de', desc: 'D untuk Domba berbulu putih.' },
+            { letter: 'E', word: 'Elang', emoji: '🦅', phonetic: 'e', desc: 'E untuk Elang terbang tinggi.' },
+            { letter: 'F', word: 'Foto', emoji: '📷', phonetic: 'ef', desc: 'F untuk Foto bersama teman.' },
+            { letter: 'G', word: 'Gajah', emoji: '🐘', phonetic: 'ge', desc: 'G untuk Gajah bertelinga lebar.' },
+            { letter: 'H', word: 'Harimau', emoji: '🐯', phonetic: 'ha', desc: 'H untuk Harimau belang.' },
+            { letter: 'I', word: 'Ikan', emoji: '🐟', phonetic: 'i', desc: 'I untuk Ikan berenang di air.' },
+            { letter: 'J', word: 'Jeruk', emoji: '🍊', phonetic: 'je', desc: 'J untuk Jeruk manis segar.' },
+            { letter: 'K', word: 'Kucing', emoji: '🐱', phonetic: 'ka', desc: 'K untuk Kucing lucu. Meong!' },
+            { letter: 'L', word: 'Kelinci', emoji: '🐰', phonetic: 'el', desc: 'L untuk Loli & Lampu terang.' },
+            { letter: 'M', word: 'Mangga', emoji: '🥭', phonetic: 'em', desc: 'M untuk Mangga harum.' },
+            { letter: 'N', word: 'Nanas', emoji: '🍍', phonetic: 'en', desc: 'N untuk Nanas kuning.' },
+            { letter: 'O', word: 'Obat', emoji: '💊', phonetic: 'o', desc: 'O untuk Obat supaya sehat.' },
+            { letter: 'P', word: 'Pisang', emoji: '🍌', phonetic: 'pe', desc: 'P untuk Pisang kuning manis.' },
+            { letter: 'Q', word: 'Quran', emoji: '📖', phonetic: 'ki', desc: 'Q untuk Kitab & Qori.' },
+            { letter: 'R', word: 'Rusa', emoji: '🦌', phonetic: 'er', desc: 'R untuk Rusa bertanduk.' },
+            { letter: 'S', word: 'Sapi', emoji: '🐄', phonetic: 'es', desc: 'S untuk Sapi penghasil susu.' },
+            { letter: 'T', word: 'Topi', emoji: '🧢', phonetic: 'te', desc: 'T untuk Topi di kepala.' },
+            { letter: 'U', word: 'Ular', emoji: '🐍', phonetic: 'u', desc: 'U untuk Ular panjang.' },
+            { letter: 'V', word: 'Vas', emoji: '🏺', phonetic: 've', desc: 'V untuk Vas bunga indah.' },
+            { letter: 'W', word: 'Wortel', emoji: '🥕', phonetic: 'we', desc: 'W untuk Wortel kesukaan kelinci.' },
+            { letter: 'X', word: 'Xilofon', emoji: ' xylophone ', emoji: '🎼', phonetic: 'eks', desc: 'X untuk Xilofon alat musik.' },
+            { letter: 'Y', word: 'Yoyo', emoji: '🪀', phonetic: 'ye', desc: 'Y untuk Yoyo naik turun.' },
+            { letter: 'Z', word: 'Zebra', emoji: '🦓', phonetic: 'zet', desc: 'Z untuk Zebra belang hitam putih.' }
+        ];
+
+        const SYLLABLE_FAMILIES = [
+            { consonant: 'B', syllables: ['BA', 'BI', 'BU', 'BE', 'BO'], examples: ['BA-JU 👕', 'BI-RU 🔵', 'BU-KU 📚', 'BE-BEK 🦆', 'BO-LA ⚽'] },
+            { consonant: 'M', syllables: ['MA', 'MI', 'MU', 'ME', 'MO'], examples: ['MA-TA 👀', 'MI-NUM 🥛', 'MU-LUT 👄', 'ME-JA 🪑', 'MO-BIL 🚗'] },
+            { consonant: 'S', syllables: ['SA', 'SI', 'SU', 'SE', 'SO'], examples: ['SA-PI 🐄', 'SI-SI 📏', 'SU-SU 🥛', 'SE-PATU 👟', 'SO-TO 🍲'] },
+            { consonant: 'K', syllables: ['KA', 'KI', 'KU', 'KE', 'KO'], examples: ['KA-KI 🦶', 'KI-PAS 🪭', 'KU-DA 🐴', 'KE-JU 🧀', 'KO-PI ☕'] },
+            { consonant: 'P', syllables: ['PA', 'PI', 'PU', 'PE', 'PO'], examples: ['PA-DI 🌾', 'PI-SANG 🍌', 'PU-LAU 🏝️', 'PE-PA-YA 🍈', 'PO-HON 🌳'] }
+        ];
+
+        // 3D World Stations placed across the 4 Zones of the Park
+        const WORLD_STATIONS = [
+            // ZONE 1: DUNIA HURUF A-Z (6 Pos di Taman Selatan)
+            {
+                id: 'huruf_a', zone: 1, type: 'letter', label: 'A', title: 'Pos Huruf A', color: 0xef4444,
+                x: -18, z: 22, emoji: '🐔',
+                letter: 'A', word: 'AYAM', speech: 'Huruf A. A untuk Ayam!',
+                question: 'Huruf apakah yang menjadi awalan kata AYAM?',
+                options: [
+                    { text: 'A - Ayam', value: 'A', emoji: '🐔', correct: true },
+                    { text: 'B - Bola', value: 'B', emoji: '⚽', correct: false },
+                    { text: 'C - Cicak', value: 'C', emoji: '🦎', correct: false }
+                ]
+            },
+            {
+                id: 'huruf_b', zone: 1, type: 'letter', label: 'B', title: 'Pos Huruf B', color: 0x3b82f6,
+                x: -7, z: 24, emoji: '⚽',
+                letter: 'B', word: 'BOLA', speech: 'Huruf B. B untuk Bola!',
+                question: 'Benda bundar untuk bermain sepak bola diawali huruf...',
+                options: [
+                    { text: 'B - Bola', value: 'B', emoji: '⚽', correct: true },
+                    { text: 'D - Domba', value: 'D', emoji: '🐑', correct: false },
+                    { text: 'G - Gajah', value: 'G', emoji: '🐘', correct: false }
+                ]
+            },
+            {
+                id: 'huruf_c', zone: 1, type: 'letter', label: 'C', title: 'Pos Huruf C', color: 0x10b981,
+                x: 6, z: 24, emoji: '🦎',
+                letter: 'C', word: 'CICAK', speech: 'Huruf C. C untuk Cicak di dinding!',
+                question: 'Hewan yang merayap di dinding pada lagu anak adalah...',
+                options: [
+                    { text: 'C - Cicak', value: 'C', emoji: '🦎', correct: true },
+                    { text: 'A - Ayam', value: 'A', emoji: '🐔', correct: false },
+                    { text: 'K - Kucing', value: 'K', emoji: '🐱', correct: false }
+                ]
+            },
+            {
+                id: 'huruf_g', zone: 1, type: 'letter', label: 'G', title: 'Pos Huruf G', color: 0xf59e0b,
+                x: 18, z: 22, emoji: '🐘',
+                letter: 'G', word: 'GAJAH', speech: 'Huruf G. G untuk Gajah besar!',
+                question: 'Pilih huruf yang tepat untuk hewan GAJAH!',
+                options: [
+                    { text: 'G - Gajah', value: 'G', emoji: '🐘', correct: true },
+                    { text: 'I - Ikan', value: 'I', emoji: '🐟', correct: false },
+                    { text: 'P - Pisang', value: 'P', emoji: '🍌', correct: false }
+                ]
+            },
+            {
+                id: 'huruf_i', zone: 1, type: 'letter', label: 'I', title: 'Pos Huruf I', color: 0x06b6d4,
+                x: -13, z: 12, emoji: '🐟',
+                letter: 'I', word: 'IKAN', speech: 'Huruf I. I untuk Ikan berenang!',
+                question: 'Hewan yang hidup di air ini berawalan huruf...',
+                options: [
+                    { text: 'I - Ikan', value: 'I', emoji: '🐟', correct: true },
+                    { text: 'U - Ular', value: 'U', emoji: '🐍', correct: false },
+                    { text: 'S - Sapi', value: 'S', emoji: '🐄', correct: false }
+                ]
+            },
+            {
+                id: 'huruf_s', zone: 1, type: 'letter', label: 'S', title: 'Pos Huruf S', color: 0xec4899,
+                x: 13, z: 12, emoji: '🐄',
+                letter: 'S', word: 'SAPI', speech: 'Huruf S. S untuk Sapi penghasil susu!',
+                question: 'Manakah huruf awal dari kata SAPI?',
+                options: [
+                    { text: 'S - Sapi', value: 'S', emoji: '🐄', correct: true },
+                    { text: 'M - Mangga', value: 'M', emoji: '🥭', correct: false },
+                    { text: 'T - Topi', value: 'T', emoji: '🧢', correct: false }
+                ]
+            },
+
+            // ZONE 2: PETUALANGAN SUKU KATA (5 Pos di Taman Tengah)
+            {
+                id: 'suku_b', zone: 2, type: 'syllable', label: 'BA-BO', title: 'Suku Kata B (BA BI BU BE BO)', color: 0xf97316,
+                x: -18, z: -2, emoji: '🧩',
+                consonant: 'B', syllables: ['BA', 'BI', 'BU', 'BE', 'BO'],
+                targetConsonant: 'B', targetVowel: 'O', targetResult: 'BO',
+                wordHint: 'BO - LA ⚽',
+                question: 'Gabungkan huruf B dan O agar menjadi awalan kata BO-LA!',
+                options: [
+                    { text: 'BO (untuk BO-LA ⚽)', value: 'BO', correct: true },
+                    { text: 'BA (untuk BA-JU 👕)', value: 'BA', correct: false },
+                    { text: 'BI (untuk BI-RU 🔵)', value: 'BI', correct: false }
+                ]
+            },
+            {
+                id: 'suku_m', zone: 2, type: 'syllable', label: 'MA-MO', title: 'Suku Kata M (MA MI MU ME MO)', color: 0x8b5cf6,
+                x: -9, z: -4, emoji: '👀',
+                consonant: 'M', syllables: ['MA', 'MI', 'MU', 'ME', 'MO'],
+                targetConsonant: 'M', targetVowel: 'A', targetResult: 'MA',
+                wordHint: 'MA - TA 👀',
+                question: 'Huruf M digabung dengan huruf A dibaca...',
+                options: [
+                    { text: 'MA (untuk MA-TA 👀)', value: 'MA', correct: true },
+                    { text: 'MI (untuk MI-NUM 🥛)', value: 'MI', correct: false },
+                    { text: 'MO (untuk MO-BIL 🚗)', value: 'MO', correct: false }
+                ]
+            },
+            {
+                id: 'suku_s', zone: 2, type: 'syllable', label: 'SA-SO', title: 'Suku Kata S (SA SI SU SE SO)', color: 0x14b8a6,
+                x: 0, z: -2, emoji: '🥛',
+                consonant: 'S', syllables: ['SA', 'SI', 'SU', 'SE', 'SO'],
+                targetConsonant: 'S', targetVowel: 'U', targetResult: 'SU',
+                wordHint: 'SU - SU 🥛',
+                question: 'Huruf S digabung dengan huruf U dibaca...',
+                options: [
+                    { text: 'SU (untuk SU-SU 🥛)', value: 'SU', correct: true },
+                    { text: 'SA (untuk SA-PI 🐄)', value: 'SA', correct: false },
+                    { text: 'SE (untuk SE-PATU 👟)', value: 'SE', correct: false }
+                ]
+            },
+            {
+                id: 'suku_k', zone: 2, type: 'syllable', label: 'KA-KO', title: 'Suku Kata K (KA KI KU KE KO)', color: 0xeab308,
+                x: 9, z: -4, emoji: '🐴',
+                consonant: 'K', syllables: ['KA', 'KI', 'KU', 'KE', 'KO'],
+                targetConsonant: 'K', targetVowel: 'U', targetResult: 'KU',
+                wordHint: 'KU - DA 🐴',
+                question: 'Huruf K digabung dengan U untuk kata KU-DA adalah...',
+                options: [
+                    { text: 'KU (untuk KU-DA 🐴)', value: 'KU', correct: true },
+                    { text: 'KA (untuk KA-KI 🦶)', value: 'KA', correct: false },
+                    { text: 'KO (untuk KO-PI ☕)', value: 'KO', correct: false }
+                ]
+            },
+            {
+                id: 'suku_p', zone: 2, type: 'syllable', label: 'PA-PO', title: 'Suku Kata P (PA PI PU PE PO)', color: 0xec4899,
+                x: 18, z: -2, emoji: '🍌',
+                consonant: 'P', syllables: ['PA', 'PI', 'PU', 'PE', 'PO'],
+                targetConsonant: 'P', targetVowel: 'I', targetResult: 'PI',
+                wordHint: 'PI - SANG 🍌',
+                question: 'Huruf P digabung dengan I untuk kata PI-SANG adalah...',
+                options: [
+                    { text: 'PI (untuk PI-SANG 🍌)', value: 'PI', correct: true },
+                    { text: 'PA (untuk PA-DI 🌾)', value: 'PA', correct: false },
+                    { text: 'PO (untuk PO-HON 🌳)', value: 'PO', correct: false }
+                ]
+            },
+
+            // ZONE 3: MISI MEMBACA KATA (4 Pos di Taman Utara)
+            {
+                id: 'kata_bola', zone: 3, type: 'word', label: 'BOLA', title: 'Misi Kata: BOLA', color: 0x2563eb,
+                x: -15, z: -18, emoji: '⚽',
+                word: 'BOLA', syllables: ['BO', 'LA'],
+                question: 'Perhatikan gambar ⚽! Manakah kata yang berbunyi BO - LA?',
+                options: [
+                    { text: 'BO - LA', emoji: '⚽', correct: true },
+                    { text: 'BU - KU', emoji: '📚', correct: false },
+                    { text: 'BA - JU', emoji: '👕', correct: false }
+                ]
+            },
+            {
+                id: 'kata_buku', zone: 3, type: 'word', label: 'BUKU', title: 'Misi Kata: BUKU', color: 0x059669,
+                x: -5, z: -20, emoji: '📚',
+                word: 'BUKU', syllables: ['BU', 'KU'],
+                question: 'Perhatikan gambar 📚! Pilih tulisan yang berbunyi BU - KU!',
+                options: [
+                    { text: 'BU - KU', emoji: '📚', correct: true },
+                    { text: 'BO - LA', emoji: '⚽', correct: false },
+                    { text: 'KA - KI', emoji: '🦶', correct: false }
+                ]
+            },
+            {
+                id: 'kata_mata', zone: 3, type: 'word', label: 'MATA', title: 'Misi Kata: MATA', color: 0xd97706,
+                x: 5, z: -20, emoji: '👀',
+                word: 'MATA', syllables: ['MA', 'TA'],
+                question: 'Perhatikan gambar 👀! Manakah kata yang dibaca MA - TA?',
+                options: [
+                    { text: 'MA - TA', emoji: '👀', correct: true },
+                    { text: 'ME - JA', emoji: '🪑', correct: false },
+                    { text: 'MU - LUT', emoji: '👄', correct: false }
+                ]
+            },
+            {
+                id: 'kata_sapi', zone: 3, type: 'word', label: 'SAPI', title: 'Misi Kata: SAPI', color: 0xdb2777,
+                x: 15, z: -18, emoji: '🐄',
+                word: 'SAPI', syllables: ['SA', 'PI'],
+                question: 'Perhatikan gambar 🐄! Pilih kata yang tepat untuk SA - PI!',
+                options: [
+                    { text: 'SA - PI', emoji: '🐄', correct: true },
+                    { text: 'SU - SU', emoji: '🥛', correct: false },
+                    { text: 'KU - DA', emoji: '🐴', correct: false }
+                ]
+            },
+
+            // ZONE 4: KALIMAT SEDERHANA & ISTANA BINTANG (3 Pos di Puncak Istana)
+            {
+                id: 'kalimat_1', zone: 4, type: 'sentence', label: 'INI BOLA', title: 'Misi Kalimat 1', color: 0x9333ea,
+                x: -10, z: -34, emoji: '⚽',
+                sentence: 'INI BOLA BUDI',
+                words: ['INI', 'BOLA', 'BUDI'],
+                question: 'Dengarkan dan pilih gambar yang sesuai dengan kalimat: "INI BOLA BUDI"',
+                options: [
+                    { text: '⚽ Anak bermain Bola', emoji: '⚽', correct: true },
+                    { text: '🐄 Sapi makan rumput', emoji: '🐄', correct: false },
+                    { text: '🐟 Ikan di kolam', emoji: '🐟', correct: false }
+                ]
+            },
+            {
+                id: 'kalimat_2', zone: 4, type: 'sentence', label: 'BACA BUKU', title: 'Misi Kalimat 2', color: 0x7c3aed,
+                x: 0, z: -36, emoji: '📚',
+                sentence: 'ANI BACA BUKU',
+                words: ['ANI', 'BACA', 'BUKU'],
+                question: 'Apa yang sedang dilakukan Ani pada kalimat "ANI BACA BUKU"?',
+                options: [
+                    { text: '📚 Membaca Buku Cerita', emoji: '📚', correct: true },
+                    { text: '🍌 Makan Buah Pisang', emoji: '🍌', correct: false },
+                    { text: '🚗 Naik Mobil Merah', emoji: '🚗', correct: false }
+                ]
+            },
+            {
+                id: 'kalimat_3', zone: 4, type: 'sentence', label: 'MINUM SUSU', title: 'Misi Kalimat 3', color: 0xc026d3,
+                x: 10, z: -34, emoji: '🥛',
+                sentence: 'SAYA SUKA SUSU SAPI',
+                words: ['SAYA', 'SUKA', 'SUSU', 'SAPI'],
+                question: 'Minuman sehat apakah yang disebutkan pada kalimat "SAYA SUKA SUSU SAPI"?',
+                options: [
+                    { text: '🥛 Susu Sapi Sehat', emoji: '🥛', correct: true },
+                    { text: '🧢 Topi Biru Baru', emoji: '🧢', correct: false },
+                    { text: '🪑 Meja Kayu', emoji: '🪑', correct: false }
+                ]
+            }
+        ];
+
+        /********************************************************************
+         * 2. STATE PERMAINAN & PENYIMPANAN PROGRES ANAK
+         ********************************************************************/
+        const gameState = {
+            started: false,
+            playerName: 'Budi',
+            avatarType: 'roblox_quran',
+            avatarColor: '#ef4444',
+            avatarEmoji: '👦🏻',
+            stars: 0,
+            completedStations: new Set(),
+            currentZone: 1,
+            nearbyStation: null,
+            activeStation: null
+        };
+
+        // Load saved progress from localStorage if available
+        function loadSavedState() {
+            try {
+                const raw = localStorage.getItem('petualangan_literasi_tk_save');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.playerName) {
+                        document.getElementById('player-name-input').value = parsed.playerName;
+                    }
+                    if (Array.isArray(parsed.completed)) {
+                        parsed.completed.forEach(id => gameState.completedStations.add(id));
+                    }
+                    if (typeof parsed.stars === 'number') {
+                        gameState.stars = parsed.stars;
+                    }
+                }
+            } catch (e) {
+                console.warn('Tidak dapat memuat penyimpanan:', e);
+            }
+        }
+
+        function saveGameState() {
+            try {
+                localStorage.setItem('petualangan_literasi_tk_save', JSON.stringify({
+                    playerName: gameState.playerName,
+                    stars: gameState.stars,
+                    completed: Array.from(gameState.completedStations)
+                }));
+            } catch (e) {}
+        }
+
+        /********************************************************************
+         * 3. AUDIO ENGINE: INDONESIAN SPEECH SYNTHESIS + WEB AUDIO CHIMES
+         ********************************************************************/
+        let audioCtx = null;
+        function ensureAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) audioCtx = new AudioContextClass();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSoundEffect(type) {
+            ensureAudioContext();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'pop') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'jump') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(240, now);
+                osc.frequency.exponentialRampToValueAtTime(620, now + 0.22);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            } else if (type === 'success') {
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+                    gain.gain.setValueAtTime(0.25, now + idx * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.008, now + idx * 0.09 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.09);
+                    osc.stop(now + idx * 0.09 + 0.3);
+                });
+            } else if (type === 'tryagain') {
+                const notes = [350, 280];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.14);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.14);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.14 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.14);
+                    osc.stop(now + idx * 0.14 + 0.2);
+                });
+            }
+        }
+
+        function speakIndonesian(text, rate = 0.9, pitch = 1.15) {
+            playSoundEffect('pop');
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'id-ID';
+                utter.rate = rate;
+                utter.pitch = pitch;
+                const voices = window.speechSynthesis.getVoices();
+                const idVoice = voices.find(v => v.lang && v.lang.toLowerCase().includes('id'));
+                if (idVoice) utter.voice = idVoice;
+                window.speechSynthesis.speak(utter);
+            } catch (e) {
+                console.warn('Speech synthesis error:', e);
+            }
+        }
+
+        /********************************************************************
+         * 4. THREE.JS 3D WORLD ENGINE (TAMAN LITERASI, KARAKTER & POS)
+         ********************************************************************/
+        let scene, camera, renderer, clock;
+        let playerGroup, playerBodyMesh, playerHeadGroup, leftLeg, rightLeg, leftArm, rightArm;
+        let stationMeshes = [];
+        let clouds = [];
+        let playerVelocityY = 0;
+        let isJumping = false;
+
+        // Movement inputs (Keyboard + Virtual Joystick)
+        const keysPressed = { up: false, down: false, left: false, right: false };
+        const joystickVector = { x: 0, y: 0 };
+
+        // Helper to generate crisp 2D Canvas Textures for 3D Blocks & Signs
+        function createLabelTexture(mainText, subText, bgColorHex, emojiText) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            ctx.fillStyle = bgColorHex;
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Cute White Inner Frame
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 14;
+            ctx.strokeRect(14, 14, 228, 228);
+
+            // Emoji if provided
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (emojiText) {
+                ctx.font = 'bold 68px sans-serif';
+                ctx.fillText(emojiText, 128, 78);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 64px Fredoka, sans-serif';
+                ctx.fillText(mainText, 128, 155);
+            } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 90px Fredoka, sans-serif';
+                ctx.fillText(mainText, 128, 118);
+            }
+
+            if (subText) {
+                ctx.fillStyle = '#fef08a';
+                ctx.font = 'bold 28px Fredoka, sans-serif';
+                ctx.fillText(subText, 128, 212);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        function init3DWorld() {
+            const canvas = document.getElementById('game-canvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x7dd3fc);
+            scene.fog = new THREE.FogExp2(0x7dd3fc, 0.0085);
+
+            camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 250);
+            camera.position.set(0, 14, 42);
+
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            clock = new THREE.Clock();
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfffbeb, 0.9);
+            dirLight.position.set(25, 45, 30);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 1;
+            dirLight.shadow.camera.far = 130;
+            const d = 55;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            buildParkEnvironment();
+            buildPlayerCharacter();
+            buildLearningStations();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function buildParkEnvironment() {
+            // Main Green Meadow Ground
+            const groundGeo = new THREE.PlaneGeometry(140, 140);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x4ade80 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Zone Colored Floors & Central Brick Path
+            const zoneConfigs = [
+                { z: 18, color: 0x86efac, width: 52, depth: 20 },  // Zone 1: Huruf
+                { z: -3, color: 0xfde047, width: 52, depth: 16 },  // Zone 2: Suku Kata
+                { z: -19, color: 0xf9a8d4, width: 46, depth: 14 }, // Zone 3: Kata
+                { z: -35, color: 0xd8b4fe, width: 38, depth: 14 }  // Zone 4: Kalimat
+            ];
+            zoneConfigs.forEach(cfg => {
+                const zGeo = new THREE.BoxGeometry(cfg.width, 0.25, cfg.depth);
+                const zMat = new THREE.MeshLambertMaterial({ color: cfg.color });
+                const zMesh = new THREE.Mesh(zGeo, zMat);
+                zMesh.position.set(0, 0.12, cfg.z);
+                zMesh.receiveShadow = true;
+                scene.add(zMesh);
+            });
+
+            // Central Golden Stepping Path connecting South to North
+            const pathGeo = new THREE.BoxGeometry(6, 0.3, 74);
+            const pathMat = new THREE.MeshLambertMaterial({ color: 0xfef08a });
+            const pathMesh = new THREE.Mesh(pathGeo, pathMat);
+            pathMesh.position.set(0, 0.15, -5);
+            pathMesh.receiveShadow = true;
+            scene.add(pathMesh);
+
+            // Build Literacy Castle at the North End (z = -46)
+            buildLiteracyCastle(0, -45);
+
+            // Decorative Trees & Flowers around the park perimeter
+            const treePositions = [
+                [-29, 25], [29, 25], [-29, 10], [29, 10],
+                [-29, -5], [29, -5], [-26, -20], [26, -20],
+                [-22, -35], [22, -35], [-16, 32], [16, 32]
+            ];
+            treePositions.forEach(([tx, tz], idx) => {
+                createCuteTree(tx, tz, idx % 2 === 0 ? 0x22c55e : 0x16a34a);
+            });
+
+            // Floating White Clouds
+            for (let i = 0; i < 10; i++) {
+                const cloud = createCloud();
+                cloud.position.set(
+                    (Math.random() - 0.5) * 90,
+                    18 + Math.random() * 8,
+                    (Math.random() - 0.5) * 90
+                );
+                clouds.push(cloud);
+                scene.add(cloud);
+            }
+        }
+
+        function createCuteTree(x, z, crownColor) {
+            const group = new THREE.Group();
+            const trunkGeo = new THREE.CylinderGeometry(0.6, 0.9, 3.2, 8);
+            const trunkMat = new THREE.MeshLambertMaterial({ color: 0x92400e });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 1.6;
+            trunk.castShadow = true;
+            group.add(trunk);
+
+            const crownGeo = new THREE.SphereGeometry(2.4, 12, 12);
+            const crownMat = new THREE.MeshLambertMaterial({ color: crownColor });
+            const crown = new THREE.Mesh(crownGeo, crownMat);
+            crown.position.y = 4.2;
+            crown.castShadow = true;
+            group.add(crown);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+
+        function buildLiteracyCastle(x, z) {
+            const castle = new THREE.Group();
+            // Main Wall
+            const base = new THREE.Mesh(
+                new THREE.BoxGeometry(16, 7, 6),
+                new THREE.MeshLambertMaterial({ color: 0xf472b6 })
+            );
+            base.position.y = 3.5;
+            base.castShadow = true;
+            castle.add(base);
+
+            // Left & Right Towers
+            [-8, 8].forEach(offsetX => {
+                const tower = new THREE.Mesh(
+                    new THREE.CylinderGeometry(2.2, 2.5, 10, 12),
+                    new THREE.MeshLambertMaterial({ color: 0xa855f7 })
+                );
+                tower.position.set(offsetX, 5, 0);
+                tower.castShadow = true;
+                castle.add(tower);
+
+                const roof = new THREE.Mesh(
+                    new THREE.ConeGeometry(3, 4, 12),
+                    new THREE.MeshLambertMaterial({ color: 0xfacc15 })
+                );
+                roof.position.set(offsetX, 12, 0);
+                castle.add(roof);
+            });
+
+            // Center Sign Banner on Castle
+            const bannerTex = createLabelTexture('ISTANA', 'JUARA BACA', '#7e22ce', '👑');
+            const banner = new THREE.Mesh(
+                new THREE.BoxGeometry(7, 4.5, 0.5),
+                new THREE.MeshBasicMaterial({ map: bannerTex })
+            );
+            banner.position.set(0, 5.5, 3.1);
+            castle.add(banner);
+
+            castle.position.set(x, 0, z);
+            scene.add(castle);
+        }
+
+        function createCloud() {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            const p1 = new THREE.Mesh(new THREE.SphereGeometry(1.8, 8, 8), mat);
+            const p2 = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), mat);
+            p2.position.set(1.6, -0.2, 0);
+            const p3 = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), mat);
+            p3.position.set(-1.6, -0.2, 0);
+            group.add(p1, p2, p3);
+            return group;
+        }
+
+        function createRobloxFaceTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Warm skin tone base
+            ctx.fillStyle = '#eab68c';
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Soft cheek shading
+            ctx.fillStyle = 'rgba(217, 119, 87, 0.22)';
+            ctx.beginPath();
+            ctx.arc(62, 152, 22, 0, Math.PI * 2);
+            ctx.arc(194, 152, 22, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Thick black eyebrows
+            ctx.strokeStyle = '#18181b';
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.quadraticCurveTo(85, 76, 108, 86);
+            ctx.moveTo(62, 90);
+            ctx.quadraticCurveTo(85, 76, 108, 86);
+            ctx.moveTo(148, 86);
+            ctx.quadraticCurveTo(171, 76, 194, 90);
+            ctx.stroke();
+
+            // Eyes white sclera outline
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(86, 114, 20, 17, 0, 0, Math.PI * 2);
+            ctx.ellipse(170, 114, 20, 17, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#18181b';
+            ctx.stroke();
+
+            // Pupils / Irises
+            ctx.fillStyle = '#18181b';
+            ctx.beginPath();
+            ctx.arc(88, 114, 12, 0, Math.PI * 2);
+            ctx.arc(168, 114, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cute white eye sparkle highlights
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(83, 108, 4.5, 0, Math.PI * 2);
+            ctx.arc(163, 108, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Subtle nose line
+            ctx.strokeStyle = '#b47b52';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(128, 138, 7, 0.2 * Math.PI, 0.8 * Math.PI);
+            ctx.stroke();
+
+            // Big cheerful Roblox smile with white teeth
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(84, 164);
+            ctx.quadraticCurveTo(128, 174, 172, 164);
+            ctx.quadraticCurveTo(128, 214, 84, 164);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#18181b';
+            ctx.stroke();
+
+            // Teeth middle line hint
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(94, 176);
+            ctx.quadraticCurveTo(128, 184, 162, 176);
+            ctx.stroke();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function createKurtaShirtTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 320;
+            const ctx = canvas.getContext('2d');
+
+            // Clean white tunic base
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, 256, 320);
+
+            // Soft side fabric folds
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(0, 0, 14, 320);
+            ctx.fillRect(242, 0, 14, 320);
+
+            // Red Mandarin Collar at the top
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(128, 6, 56, 0, Math.PI);
+            ctx.fill();
+
+            // White inner neck trim
+            ctx.fillStyle = '#eab68c';
+            ctx.beginPath();
+            ctx.arc(128, 0, 32, 0, Math.PI);
+            ctx.fill();
+
+            // Collar gold/white button
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(128, 28, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Button placket down center chest
+            ctx.fillStyle = '#f1f5f9';
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 3;
+            ctx.fillRect(115, 42, 26, 110);
+            ctx.strokeRect(115, 42, 26, 110);
+
+            // Three vertical buttons
+            ctx.fillStyle = '#94a3b8';
+            [62, 92, 122].forEach(by => {
+                ctx.beginPath();
+                ctx.arc(128, by, 4.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Red pocket welt accent on left chest (viewer's right)
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(156, 86, 46, 13);
+            ctx.strokeStyle = '#b91c1c';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(156, 86, 46, 13);
+
+            // Dark Camo Backpack Straps over the shoulders
+            ctx.fillStyle = '#27272a';
+            ctx.fillRect(18, 0, 34, 185);
+            ctx.fillRect(204, 0, 34, 185);
+
+            // Camo spots on straps
+            ctx.fillStyle = '#52525b';
+            [[24, 25], [32, 75], [22, 130], [210, 35], [216, 95], [208, 145]].forEach(([cx, cy]) => {
+                ctx.beginPath();
+                ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function createCamoTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Dark charcoal base
+            ctx.fillStyle = '#27272a';
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Camouflage blobs in grey & black
+            const blobs = [
+                { x: 40, y: 50, r: 34, c: '#52525b' },
+                { x: 120, y: 35, r: 28, c: '#18181b' },
+                { x: 200, y: 65, r: 36, c: '#3f3f46' },
+                { x: 70, y: 120, r: 40, c: '#18181b' },
+                { x: 165, y: 130, r: 35, c: '#71717a' },
+                { x: 45, y: 200, r: 32, c: '#3f3f46' },
+                { x: 130, y: 210, r: 42, c: '#52525b' },
+                { x: 215, y: 195, r: 30, c: '#18181b' }
+            ];
+            blobs.forEach(b => {
+                ctx.fillStyle = b.c;
+                ctx.beginPath();
+                ctx.ellipse(b.x, b.y, b.r, b.r * 0.7, 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Backpack patch & zipper line details
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(88, 48, 80, 38);
+            ctx.strokeStyle = '#3f3f46';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(42, 130, 172, 98);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function createBookCoverTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 160;
+            const ctx = canvas.getContext('2d');
+
+            // Maroon cover
+            ctx.fillStyle = '#6b141a';
+            ctx.fillRect(0, 0, 128, 160);
+
+            // Ornate gold border
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(10, 10, 108, 140);
+
+            // Center golden medallion ornament
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.arc(64, 80, 24, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#6b141a';
+            ctx.beginPath();
+            ctx.arc(64, 80, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function buildPlayerCharacter() {
+            if (playerGroup) scene.remove(playerGroup);
+            playerGroup = new THREE.Group();
+
+            const skinMat = new THREE.MeshLambertMaterial({ color: 0xeab68c });
+            const hairMat = new THREE.MeshLambertMaterial({ color: 0x18181b });
+            const whiteKurtaMat = new THREE.MeshLambertMaterial({ color: 0xf8fafc });
+            const greySleeveMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af });
+            const pantsMat = new THREE.MeshLambertMaterial({ color: 0x1e242b });
+            const shoeBlackMat = new THREE.MeshLambertMaterial({ color: 0x111827 });
+            const shoeWhiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            const camoMat = new THREE.MeshLambertMaterial({ map: createCamoTexture() });
+
+            // 1. LEGS & SNEAKERS (Dark trousers + black/white sneakers)
+            function createRobloxLeg(offsetX) {
+                const legGroup = new THREE.Group();
+                legGroup.position.set(offsetX, 1.35, 0);
+
+                // Dark Pants Leg
+                const trouser = new THREE.Mesh(new THREE.BoxGeometry(0.66, 1.15, 0.72), pantsMat);
+                trouser.position.y = -0.35;
+                trouser.castShadow = true;
+                legGroup.add(trouser);
+
+                // Black Sneaker Body
+                const shoeUpper = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.32, 0.86), shoeBlackMat);
+                shoeUpper.position.set(0, -1.02, 0.06);
+                shoeUpper.castShadow = true;
+                legGroup.add(shoeUpper);
+
+                // White Sneaker Sole & Toe Cap
+                const shoeSole = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.14, 0.90), shoeWhiteMat);
+                shoeSole.position.set(0, -1.20, 0.07);
+                legGroup.add(shoeSole);
+
+                const shoeLaces = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.08, 0.25), shoeWhiteMat);
+                shoeLaces.position.set(0, -0.86, 0.22);
+                legGroup.add(shoeLaces);
+
+                return legGroup;
+            }
+
+            leftLeg = createRobloxLeg(-0.38);
+            rightLeg = createRobloxLeg(0.38);
+            playerGroup.add(leftLeg, rightLeg);
+
+            // 2. TORSO (White Kurta / Baju Koko with Red Collar, Buttons, Red Pocket Accent)
+            const kurtaFrontTex = createKurtaShirtTexture();
+            const torsoMaterials = [
+                whiteKurtaMat, // right
+                whiteKurtaMat, // left
+                new THREE.MeshLambertMaterial({ color: 0xdc2626 }), // top red collar rim
+                whiteKurtaMat, // bottom
+                new THREE.MeshLambertMaterial({ map: kurtaFrontTex }), // front
+                whiteKurtaMat  // back
+            ];
+            playerBodyMesh = new THREE.Mesh(new THREE.BoxGeometry(1.52, 2.05, 0.82), torsoMaterials);
+            playerBodyMesh.position.y = 2.02;
+            playerBodyMesh.castShadow = true;
+            playerGroup.add(playerBodyMesh);
+
+            // 3. CAMO BACKPACK ON BACK
+            const backpackGroup = new THREE.Group();
+            const mainPack = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.48, 0.55), camoMat);
+            mainPack.position.set(0, 2.22, -0.66);
+            mainPack.castShadow = true;
+            backpackGroup.add(mainPack);
+
+            const outerPocket = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.68, 0.25), camoMat);
+            outerPocket.position.set(0, 1.98, -0.98);
+            outerPocket.castShadow = true;
+            backpackGroup.add(outerPocket);
+
+            // Top loop handle on backpack
+            const loopHandle = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.14, 0.12), shoeBlackMat);
+            loopHandle.position.set(0, 3.0, -0.58);
+            backpackGroup.add(loopHandle);
+            playerGroup.add(backpackGroup);
+
+            // 4. ARMS (Grey Long Sleeves + Blocky Skin Hands + Optional Book in Right Arm)
+            function createRobloxArm(isRightArm) {
+                const armGroup = new THREE.Group();
+                const xPos = isRightArm ? -1.08 : 1.08;
+                armGroup.position.set(xPos, 2.85, 0);
+
+                // Grey Long Sleeve
+                const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.60, 1.38, 0.66), greySleeveMat);
+                sleeve.position.y = -0.55;
+                sleeve.castShadow = true;
+                armGroup.add(sleeve);
+
+                // Blocky Hand
+                const hand = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.36, 0.62), skinMat);
+                hand.position.y = -1.38;
+                hand.castShadow = true;
+                armGroup.add(hand);
+
+                // If character holds the Maroon/Gold Book (on right arm / viewer's left)
+                if (isRightArm && gameState.avatarType !== 'roblox_tas') {
+                    const bookCoverTex = createBookCoverTexture();
+                    const goldPageMat = new THREE.MeshLambertMaterial({ color: 0xfef08a });
+                    const maroonMat = new THREE.MeshLambertMaterial({ color: 0x6b141a });
+                    const bookMats = [
+                        goldPageMat,
+                        maroonMat,
+                        goldPageMat,
+                        goldPageMat,
+                        new THREE.MeshLambertMaterial({ map: bookCoverTex }),
+                        maroonMat
+                    ];
+                    const bookMesh = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.86, 0.18), bookMats);
+                    bookMesh.position.set(0.42, -0.95, 0.46);
+                    bookMesh.rotation.z = -0.18;
+                    bookMesh.rotation.y = 0.25;
+                    bookMesh.castShadow = true;
+                    armGroup.add(bookMesh);
+                }
+
+                return armGroup;
+            }
+
+            // Right arm of character (viewer's left, x = -1.08) & Left arm (x = +1.08)
+            rightArm = createRobloxArm(true);
+            leftArm = createRobloxArm(false);
+            playerGroup.add(rightArm, leftArm);
+
+            // 5. ROBLOX HEAD + PARTED BLACK HAIR
+            playerHeadGroup = new THREE.Group();
+            playerHeadGroup.position.y = 3.68;
+
+            const faceTex = createRobloxFaceTexture();
+            const headMaterials = [
+                skinMat, // right
+                skinMat, // left
+                skinMat, // top
+                skinMat, // bottom
+                new THREE.MeshLambertMaterial({ map: faceTex }), // front face with smile & eyes
+                skinMat  // back
+            ];
+
+            // Rounded-feel blocky Roblox head
+            const headMesh = new THREE.Mesh(new THREE.BoxGeometry(1.18, 1.18, 1.14), headMaterials);
+            headMesh.castShadow = true;
+            playerHeadGroup.add(headMesh);
+
+            // Center-parted Black Hair (Belah Tengah)
+            const hairTopLeft = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.36, 1.24), hairMat);
+            hairTopLeft.position.set(-0.30, 0.56, 0.02);
+            hairTopLeft.rotation.z = 0.12;
+            playerHeadGroup.add(hairTopLeft);
+
+            const hairTopRight = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.36, 1.24), hairMat);
+            hairTopRight.position.set(0.30, 0.56, 0.02);
+            hairTopRight.rotation.z = -0.12;
+            playerHeadGroup.add(hairTopRight);
+
+            // Curtain bangs on left & right forehead
+            const bangLeft = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.22), hairMat);
+            bangLeft.position.set(-0.42, 0.36, 0.54);
+            bangLeft.rotation.z = 0.32;
+            playerHeadGroup.add(bangLeft);
+
+            const bangRight = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.22), hairMat);
+            bangRight.position.set(0.42, 0.36, 0.54);
+            bangRight.rotation.z = -0.32;
+            playerHeadGroup.add(bangRight);
+
+            // Side & Back Hair Coverage
+            const hairBack = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.96, 0.36), hairMat);
+            hairBack.position.set(0, 0.16, -0.48);
+            playerHeadGroup.add(hairBack);
+
+            const hairSideL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 1.18), hairMat);
+            hairSideL.position.set(-0.58, 0.26, -0.02);
+            playerHeadGroup.add(hairSideL);
+
+            const hairSideR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 1.18), hairMat);
+            hairSideR.position.set(0.58, 0.26, -0.02);
+            playerHeadGroup.add(hairSideR);
+
+            playerGroup.add(playerHeadGroup);
+
+            // 6. GLOWING RING UNDER PLAYER
+            const ringGeo = new THREE.RingGeometry(0.95, 1.32, 28);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xfef08a, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.18;
+            playerGroup.add(ring);
+
+            playerGroup.position.set(0, 0, 29);
+            scene.add(playerGroup);
+        }
+
+        function buildLearningStations() {
+            stationMeshes.forEach(s => scene.remove(s.group));
+            stationMeshes = [];
+
+            WORLD_STATIONS.forEach(station => {
+                const group = new THREE.Group();
+
+                // Circular Pedestal Base
+                const isDone = gameState.completedStations.has(station.id);
+                const baseMat = new THREE.MeshLambertMaterial({
+                    color: isDone ? 0x22c55e : 0xffffff
+                });
+                const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.5, 0.6, 20), baseMat);
+                pedestal.position.y = 0.3;
+                pedestal.receiveShadow = true;
+                group.add(pedestal);
+
+                // Floating 3D Cube with Letter/Word Texture
+                const hexStr = '#' + station.color.toString(16).padStart(6, '0');
+                const subLabel = isDone ? '★ SELESAI' : 'DEKATI AKU';
+                const tex = createLabelTexture(station.label, subLabel, hexStr, station.emoji);
+                const boxMat = new THREE.MeshLambertMaterial({ map: tex });
+                const cube = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 2.6), boxMat);
+                cube.position.y = 2.6;
+                cube.castShadow = true;
+                group.add(cube);
+
+                group.position.set(station.x, 0, station.z);
+                scene.add(group);
+
+                stationMeshes.push({
+                    station,
+                    group,
+                    cube,
+                    pedestal
+                });
+            });
+        }
+
+        function refreshStationVisual(stationId) {
+            const item = stationMeshes.find(m => m.station.id === stationId);
+            if (!item) return;
+            const hexStr = '#' + item.station.color.toString(16).padStart(6, '0');
+            const tex = createLabelTexture(item.station.label, '★ SELESAI', hexStr, '⭐');
+            item.cube.material.map = tex;
+            item.cube.material.needsUpdate = true;
+            item.pedestal.material.color.setHex(0x22c55e);
+        }
+
+        /********************************************************************
+         * 5. KONTROL JOYSTICK, KEYBOARD, DAN LOOP ANIMASI 3D
+         ********************************************************************/
+        function setupControls() {
+            // Keyboard Controls (WASD + Arrows + Space)
+            window.addEventListener('keydown', (e) => {
+                const k = e.key.toLowerCase();
+                if (k === 'w' || k === 'arrowup') keysPressed.up = true;
+                if (k === 's' || k === 'arrowdown') keysPressed.down = true;
+                if (k === 'a' || k === 'arrowleft') keysPressed.left = true;
+                if (k === 'd' || k === 'arrowright') keysPressed.right = true;
+                if (k === ' ') jumpPlayer();
+                if (k === 'enter' && gameState.nearbyStation && document.getElementById('activity-modal').classList.contains('hidden')) {
+                    triggerNearbyStation();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const k = e.key.toLowerCase();
+                if (k === 'w' || k === 'arrowup') keysPressed.up = false;
+                if (k === 's' || k === 'arrowdown') keysPressed.down = false;
+                if (k === 'a' || k === 'arrowleft') keysPressed.left = false;
+                if (k === 'd' || k === 'arrowright') keysPressed.right = false;
+            });
+
+            // Virtual Touch & Mouse Joystick
+            const zone = document.getElementById('joystick-zone');
+            const knob = document.getElementById('joystick-knob');
+            let dragging = false;
+            const maxRadius = 38;
+
+            function updateStick(clientX, clientY) {
+                const rect = zone.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                let dx = clientX - centerX;
+                let dy = clientY - centerY;
+                const dist = Math.hypot(dx, dy);
+                if (dist > maxRadius) {
+                    dx = (dx / dist) * maxRadius;
+                    dy = (dy / dist) * maxRadius;
+                }
+                knob.style.transform = `translate(${dx}px, ${dy}px)`;
+                joystickVector.x = dx / maxRadius;
+                joystickVector.y = dy / maxRadius;
+            }
+
+            function resetStick() {
+                dragging = false;
+                knob.style.transform = `translate(0px, 0px)`;
+                joystickVector.x = 0;
+                joystickVector.y = 0;
+            }
+
+            zone.addEventListener('pointerdown', (e) => {
+                dragging = true;
+                zone.setPointerCapture(e.pointerId);
+                updateStick(e.clientX, e.clientY);
+            });
+            zone.addEventListener('pointermove', (e) => {
+                if (dragging) updateStick(e.clientX, e.clientY);
+            });
+            zone.addEventListener('pointerup', resetStick);
+            zone.addEventListener('pointercancel', resetStick);
+
+            // Click directly on 3D Station Cube with Raycaster
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            const canvas = document.getElementById('game-canvas');
+            canvas.addEventListener('pointerdown', (e) => {
+                if (!gameState.started) return;
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const cubes = stationMeshes.map(m => m.cube);
+                const hits = raycaster.intersectObjects(cubes);
+                if (hits.length > 0) {
+                    const hitCube = hits[0].object;
+                    const found = stationMeshes.find(m => m.cube === hitCube);
+                    if (found) {
+                        openStationActivity(found.station);
+                    }
+                }
+            });
+        }
+
+        function jumpPlayer() {
+            if (!isJumping) {
+                isJumping = true;
+                playerVelocityY = 9.5;
+                playSoundEffect('jump');
+            }
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const elapsed = clock.getElapsedTime();
+
+            // Rotate floating station cubes
+            stationMeshes.forEach((item, idx) => {
+                item.cube.rotation.y += dt * 0.9;
+                item.cube.position.y = 2.6 + Math.sin(elapsed * 2.5 + idx) * 0.25;
+            });
+
+            // Drift clouds gently
+            clouds.forEach(c => {
+                c.position.x += dt * 0.8;
+                if (c.position.x > 50) c.position.x = -50;
+            });
+
+            if (gameState.started && playerGroup) {
+                // Combine keyboard + joystick input
+                let moveX = joystickVector.x;
+                let moveZ = joystickVector.y;
+                if (keysPressed.left) moveX -= 1;
+                if (keysPressed.right) moveX += 1;
+                if (keysPressed.up) moveZ -= 1;
+                if (keysPressed.down) moveZ += 1;
+
+                const len = Math.hypot(moveX, moveZ);
+                const speed = 11.5;
+
+                if (len > 0.08) {
+                    const normX = moveX / Math.max(1, len);
+                    const normZ = moveZ / Math.max(1, len);
+
+                    playerGroup.position.x += normX * speed * dt;
+                    playerGroup.position.z += normZ * speed * dt;
+
+                    // Keep within park boundaries
+                    playerGroup.position.x = Math.max(-26, Math.min(26, playerGroup.position.x));
+                    playerGroup.position.z = Math.max(-39, Math.min(34, playerGroup.position.z));
+
+                    // Smoothly face movement direction
+                    const targetAngle = Math.atan2(normX, normZ);
+                    playerGroup.rotation.y = targetAngle;
+
+                    // Walking swing animation
+                    const swing = Math.sin(elapsed * 12) * 0.55;
+                    leftLeg.rotation.x = swing;
+                    rightLeg.rotation.x = -swing;
+                    leftArm.rotation.x = -swing * 0.75;
+                    // Right arm holds the book slightly bent if in 'roblox_quran' mode
+                    if (gameState.avatarType !== 'roblox_tas') {
+                        rightArm.rotation.x = -0.45 + swing * 0.25;
+                    } else {
+                        rightArm.rotation.x = swing * 0.75;
+                    }
+                } else {
+                    leftLeg.rotation.x = 0;
+                    rightLeg.rotation.x = 0;
+                    leftArm.rotation.x = 0;
+                    rightArm.rotation.x = gameState.avatarType !== 'roblox_tas' ? -0.45 : 0;
+                }
+
+                // Jump physics
+                if (isJumping) {
+                    playerGroup.position.y += playerVelocityY * dt;
+                    playerVelocityY -= 24 * dt;
+                    if (playerGroup.position.y <= 0) {
+                        playerGroup.position.y = 0;
+                        isJumping = false;
+                        playerVelocityY = 0;
+                    }
+                }
+
+                // Smooth Camera Follow
+                const targetCamX = playerGroup.position.x * 0.75;
+                const targetCamZ = playerGroup.position.z + 13.5;
+                camera.position.x += (targetCamX - camera.position.x) * 5 * dt;
+                camera.position.z += (targetCamZ - camera.position.z) * 5 * dt;
+                camera.position.y = 10.5;
+                camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.8, playerGroup.position.z - 2);
+
+                // Check Proximity to Learning Stations
+                checkStationProximity();
+                updateZoneIndicator(playerGroup.position.z);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function checkStationProximity() {
+            let closest = null;
+            let minDist = 4.3;
+
+            for (const item of stationMeshes) {
+                const dx = playerGroup.position.x - item.station.x;
+                const dz = playerGroup.position.z - item.station.z;
+                const dist = Math.hypot(dx, dz);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = item.station;
+                }
+            }
+
+            const banner = document.getElementById('proximity-banner');
+            if (closest) {
+                if (gameState.nearbyStation?.id !== closest.id) {
+                    gameState.nearbyStation = closest;
+                    document.getElementById('proximity-icon').textContent = closest.emoji;
+                    document.getElementById('proximity-title').textContent = closest.title;
+                    banner.classList.remove('hidden');
+                    playSoundEffect('pop');
+                }
+            } else {
+                if (gameState.nearbyStation) {
+                    gameState.nearbyStation = null;
+                    banner.classList.add('hidden');
+                }
+            }
+        }
+
+        function updateZoneIndicator(zPos) {
+            let newZone = 1;
+            let label = 'Area 1: Dunia Huruf A–Z';
+            if (zPos < 5 && zPos >= -11) {
+                newZone = 2;
+                label = 'Area 2: Petualangan Suku Kata (BA-BI-BU)';
+            } else if (zPos < -11 && zPos >= -27) {
+                newZone = 3;
+                label = 'Area 3: Misi Membaca Kata';
+            } else if (zPos < -27) {
+                newZone = 4;
+                label = 'Area 4: Kalimat Sederhana & Istana';
+            }
+            if (gameState.currentZone !== newZone) {
+                gameState.currentZone = newZone;
+                document.getElementById('current-zone-label').textContent = label;
+            }
+        }
+
+        function teleportToZone(zoneNumber) {
+            if (!playerGroup) return;
+            playSoundEffect('jump');
+            const zoneCoords = {
+                1: { x: 0, z: 27, speech: 'Selamat datang di Area Satu, Dunia Huruf A sampai Z!' },
+                2: { x: 0, z: 3, speech: 'Selamat datang di Area Dua, Petualangan Suku Kata BA BI BU BE BO!' },
+                3: { x: 0, z: -13, speech: 'Selamat datang di Area Tiga, Misi Membaca Kata dan Gambar!' },
+                4: { x: 0, z: -29, speech: 'Selamat datang di Area Empat, Membaca Kalimat di Istana Bintang!' }
+            };
+            const target = zoneCoords[zoneNumber];
+            if (target) {
+                playerGroup.position.set(target.x, 2, target.z);
+                isJumping = true;
+                playerVelocityY = 4;
+                speakIndonesian(target.speech);
+            }
+        }
+
+        function findNearestUnfinishedStation() {
+            const nextStation = WORLD_STATIONS.find(s => !gameState.completedStations.has(s.id)) || WORLD_STATIONS[0];
+            if (nextStation && playerGroup) {
+                playerGroup.position.set(nextStation.x, 1.5, nextStation.z + 2.8);
+                isJumping = true;
+                playerVelocityY = 4;
+                speakIndonesian(`Ayo kita selesaikan ${nextStation.title}`);
+            }
+        }
+
+        function speakCurrentZoneHint() {
+            const remaining = WORLD_STATIONS.length - gameState.completedStations.size;
+            if (remaining === 0) {
+                speakIndonesian(`Hebat sekali ${gameState.playerName}! Semua pos sudah selesai. Klik tombol Sertifikat di kanan atas ya!`);
+            } else {
+                speakIndonesian(`Halo ${gameState.playerName}! Gunakan joystick di kiri bawah untuk berjalan mendekati balok warna warni. Masih ada ${remaining} pos seru untuk dijelajahi!`);
+            }
+        }
+
+        /********************************************************************
+         * 6. MODUL INTERAKTIF POS BELAJAR & KUIS POSITIF
+         ********************************************************************/
+        function selectAvatar(type, colorHex, emoji) {
+            gameState.avatarType = type;
+            gameState.avatarColor = colorHex;
+            gameState.avatarEmoji = emoji;
+            document.querySelectorAll('.avatar-btn').forEach(btn => {
+                if (btn.dataset.avatar === type) {
+                    btn.classList.add('ring-4', 'ring-pink-500', 'scale-105');
+                } else {
+                    btn.classList.remove('ring-4', 'ring-pink-500', 'scale-105');
+                }
+            });
+            buildPlayerCharacter();
+            playSoundEffect('pop');
+        }
+
+        function startGame() {
+            ensureAudioContext();
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            gameState.playerName = nameInput || 'Anak Hebat';
+
+            document.getElementById('hud-player-name').textContent = gameState.playerName;
+            document.getElementById('hud-avatar-emoji').textContent = gameState.avatarEmoji;
+            document.getElementById('hud-stars').textContent = gameState.stars;
+
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('hud-top').classList.remove('hidden');
+            document.getElementById('hud-bottom').classList.remove('hidden');
+
+            gameState.started = true;
+            saveGameState();
+
+            speakIndonesian(`Halo ${gameState.playerName}! Selamat datang di Petualangan Literasi Tiga Dimensi. Ayo dekati balok huruf di taman!`);
+        }
+
+        function triggerNearbyStation() {
+            if (gameState.nearbyStation) {
+                openStationActivity(gameState.nearbyStation);
+            }
+        }
+
+        function openStationActivity(station) {
+            gameState.activeStation = station;
+            const modal = document.getElementById('activity-modal');
+            const badge = document.getElementById('activity-badge');
+            const content = document.getElementById('activity-content');
+            const feedback = document.getElementById('activity-feedback');
+
+            feedback.classList.add('hidden');
+            modal.classList.remove('hidden');
+
+            if (station.type === 'letter') {
+                badge.textContent = '1. DUNIA HURUF A–Z';
+                renderLetterStation(station, content);
+                speakIndonesian(`${station.speech}. ${station.question}`);
+            } else if (station.type === 'syllable') {
+                badge.textContent = '2. PETUALANGAN SUKU KATA';
+                renderSyllableStation(station, content);
+                speakIndonesian(`Mari belajar suku kata dari huruf ${station.consonant}. ${station.syllables.join(', ')}.`);
+            } else if (station.type === 'word') {
+                badge.textContent = '3. MISI MEMBACA KATA';
+                renderWordStation(station, content);
+                speakIndonesian(`Mari mengeja kata ${station.syllables.join(' ')}, dibaca ${station.word}.`);
+            } else if (station.type === 'sentence') {
+                badge.textContent = '4. KALIMAT SEDERHANA';
+                renderSentenceStation(station, content);
+                speakIndonesian(`Mari membaca kalimat: ${station.sentence}`);
+            }
+        }
+
+        function closeActivityModal() {
+            document.getElementById('activity-modal').classList.add('hidden');
+            gameState.activeStation = null;
+        }
+
+        // Render Module 1: Dunia Huruf A-Z
+        function renderLetterStation(station, container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <div class="flex items-center justify-center gap-4 my-2">
+                        <div class="w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-gradient-to-br from-sky-400 to-blue-600 text-white flex items-center justify-center text-6xl md:text-7xl font-extrabold border-4 border-yellow-300 shadow-xl">
+                            ${station.letter}${station.letter.toLowerCase()}
+                        </div>
+                        <div class="text-6xl md:text-7xl bg-amber-50 p-4 rounded-3xl border-4 border-amber-200">
+                            ${station.emoji}
+                        </div>
+                    </div>
+
+                    <h3 class="text-2xl md:text-3xl font-extrabold text-sky-800 mt-2">
+                        ${station.letter} untuk <span class="text-pink-600 underline">${station.word}</span>
+                    </h3>
+
+                    <button onclick="speakIndonesian('${station.letter}. ${station.letter} untuk ${station.word}')" 
+                        class="btn-kid mt-3 bg-amber-400 text-amber-950 font-bold px-5 py-2.5 rounded-2xl border-2 border-amber-600 flex items-center gap-2 text-base">
+                        🔊 Dengarkan Bunyi Huruf "${station.letter}"
+                    </button>
+
+                    <div class="w-full h-1 bg-gray-100 my-4 rounded-full"></div>
+
+                    <p class="text-base md:text-lg font-bold text-gray-700 mb-3">
+                        🎯 Kuis Ceria: ${station.question}
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                        ${station.options.map((opt, idx) => `
+                            <button onclick="submitQuizAnswer(${opt.correct}, '${opt.text}')" 
+                                class="btn-kid bg-sky-50 hover:bg-yellow-100 border-4 border-sky-300 rounded-2xl p-3 flex flex-col items-center gap-1 text-sky-900 font-bold text-lg">
+                                <span class="text-4xl">${opt.emoji}</span>
+                                <span>${opt.text}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render Module 2: Petualangan Suku Kata (BA BI BU BE BO, MA MI MU ME MO)
+        function renderSyllableStation(station, container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <h3 class="text-xl md:text-2xl font-extrabold text-purple-700">
+                        Merangkai Suku Kata Huruf "${station.consonant}"
+                    </h3>
+                    <p class="text-xs md:text-sm text-gray-500 mb-3">Klik tombol suku kata di bawah untuk mendengar bunyinya!</p>
+
+                    <!-- Interactive BA BI BU BE BO Bar -->
+                    <div class="flex flex-wrap justify-center gap-2 mb-4">
+                        ${station.syllables.map(syl => `
+                            <button onclick="speakIndonesian('${syl}')" 
+                                class="btn-kid bg-gradient-to-b from-amber-300 to-amber-500 text-amber-950 font-extrabold text-xl md:text-2xl px-4 py-2.5 rounded-2xl border-4 border-white shadow">
+                                🔊 ${syl}
+                            </button>
+                        `).join('')}
+                    </div>
+
+                    <!-- Blending Visual Box -->
+                    <div class="bg-purple-50 border-4 border-purple-200 rounded-2xl p-3 md:p-4 w-full max-w-md mb-4">
+                        <div class="text-xs font-bold text-purple-600 uppercase mb-1">Rumus Menggabungkan Huruf:</div>
+                        <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-extrabold text-purple-900">
+                            <span class="bg-white px-4 py-2 rounded-xl border-2 border-purple-300">${station.targetConsonant}</span>
+                            <span>+</span>
+                            <span class="bg-white px-4 py-2 rounded-xl border-2 border-purple-300">${station.targetVowel}</span>
+                            <span>=</span>
+                            <button onclick="speakIndonesian('${station.targetConsonant} ditambah ${station.targetVowel} dibaca ${station.targetResult}')" 
+                                class="bg-pink-500 text-white px-4 py-2 rounded-xl border-2 border-white shadow">
+                                🔊 ${station.targetResult}
+                            </button>
+                        </div>
+                        <div class="text-sm font-bold text-pink-600 mt-2">Contoh Kata: ${station.wordHint}</div>
+                    </div>
+
+                    <p class="text-base md:text-lg font-bold text-gray-700 mb-3">
+                        🎯 ${station.question}
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                        ${station.options.map(opt => `
+                            <button onclick="submitQuizAnswer(${opt.correct}, '${opt.value}')" 
+                                class="btn-kid bg-amber-50 hover:bg-amber-100 border-4 border-amber-300 rounded-2xl p-3.5 font-extrabold text-lg text-amber-900">
+                                ${opt.text}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render Module 3: Misi Membaca Kata (BOLA, BUKU, MATA, SAPI)
+        function renderWordStation(station, container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <div class="text-7xl md:text-8xl bg-pink-50 p-5 rounded-3xl border-4 border-pink-300 shadow-inner my-2 animate-bounce">
+                        ${station.emoji}
+                    </div>
+
+                    <!-- Syllable Breakdown Buttons -->
+                    <div class="flex items-center gap-2 my-2">
+                        ${station.syllables.map(syl => `
+                            <button onclick="speakIndonesian('${syl}')" class="btn-kid bg-sky-500 text-white text-2xl font-extrabold px-4 py-2 rounded-2xl border-2 border-white">
+                                🔊 ${syl}
+                            </button>
+                        `).join('<span class="text-2xl font-bold text-gray-400">+</span>')}
+                        <span class="text-2xl font-bold text-gray-400">=</span>
+                        <button onclick="speakIndonesian('${station.word}')" class="btn-kid bg-emerald-500 text-white text-2xl font-extrabold px-5 py-2 rounded-2xl border-2 border-white">
+                            🔊 ${station.word}
+                        </button>
+                    </div>
+
+                    <p class="text-base md:text-lg font-bold text-gray-700 mt-4 mb-3">
+                        🎯 ${station.question}
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                        ${station.options.map(opt => `
+                            <button onclick="submitQuizAnswer(${opt.correct}, '${opt.text}')" 
+                                class="btn-kid bg-pink-50 hover:bg-pink-100 border-4 border-pink-300 rounded-2xl p-4 flex flex-col items-center gap-1 font-extrabold text-xl text-pink-900">
+                                <span class="text-3xl">${opt.emoji}</span>
+                                <span>${opt.text}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render Module 4: Misi Kalimat Sederhana
+        function renderSentenceStation(station, container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <div class="text-6xl mb-2">${station.emoji}</div>
+                    <p class="text-xs font-bold text-purple-600 uppercase">Ketuk setiap kata untuk mendengarkan:</p>
+
+                    <div class="flex flex-wrap justify-center gap-2 my-3">
+                        ${station.words.map(w => `
+                            <button onclick="speakIndonesian('${w}')" 
+                                class="btn-kid bg-purple-100 hover:bg-purple-200 text-purple-900 border-4 border-purple-400 font-extrabold text-2xl px-4 py-2 rounded-2xl">
+                                ${w}
+                            </button>
+                        `).join('')}
+                    </div>
+
+                    <button onclick="speakIndonesian('${station.sentence}')" 
+                        class="btn-kid bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-2.5 rounded-2xl border-2 border-white shadow mb-4">
+                        🔊 Baca Utuh: "${station.sentence}"
+                    </button>
+
+                    <p class="text-base md:text-lg font-bold text-gray-700 mb-3">
+                        🎯 ${station.question}
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                        ${station.options.map(opt => `
+                            <button onclick="submitQuizAnswer(${opt.correct}, '${opt.text}')" 
+                                class="btn-kid bg-purple-50 hover:bg-purple-100 border-4 border-purple-300 rounded-2xl p-3.5 font-bold text-base text-purple-900 flex flex-col items-center gap-1">
+                                <span class="text-3xl">${opt.emoji}</span>
+                                <span>${opt.text}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function submitQuizAnswer(isCorrect, chosenText) {
+            const feedback = document.getElementById('activity-feedback');
+            feedback.classList.remove('hidden');
+
+            if (isCorrect) {
+                playSoundEffect('success');
+                launchConfetti();
+
+                const station = gameState.activeStation;
+                const firstTime = station && !gameState.completedStations.has(station.id);
+
+                if (station) {
+                    gameState.completedStations.add(station.id);
+                    refreshStationVisual(station.id);
+                }
+
+                const earnedStars = firstTime ? 3 : 1;
+                gameState.stars += earnedStars;
+                document.getElementById('hud-stars').textContent = gameState.stars;
+                saveGameState();
+
+                feedback.className = 'mt-4 p-4 rounded-2xl border-4 bg-emerald-100 border-emerald-400 text-emerald-900 text-center font-bold';
+                feedback.innerHTML = `
+                    <div class="text-2xl mb-1">🎉 HEBAT SEKALI, ${gameState.playerName.toUpperCase()}! +${earnedStars} ⭐</div>
+                    <p class="text-sm font-normal">Jawabanmu benar! Kamu makin pintar membaca!</p>
+                    <button onclick="closeActivityModal()" class="btn-kid mt-3 bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold">
+                        Lanjut Petualangan 🚀
+                    </button>
+                `;
+
+                speakIndonesian(`Hore! Jawabanmu benar! Kamu mendapat bintang!`);
+            } else {
+                playSoundEffect('tryagain');
+                feedback.className = 'mt-4 p-4 rounded-2xl border-4 bg-amber-100 border-amber-400 text-amber-900 text-center font-bold';
+                feedback.innerHTML = `
+                    <div class="text-xl">😊 Hampir Tepat! Ayo Coba Lagi Ya!</div>
+                    <p class="text-sm font-normal">Dengarkan bunyinya baik-baik lalu pilih lagi.</p>
+                `;
+                speakIndonesian('Hampir tepat, ayo coba pilih sekali lagi ya anak hebat!');
+            }
+        }
+
+        /********************************************************************
+         * 7. KAMUS BUNYI A-Z, REKAP PROGRES, SERTIFIKAT & CONFETTI
+         ********************************************************************/
+        function populateDictionaryModal() {
+            const azGrid = document.getElementById('dict-content-az');
+            azGrid.innerHTML = ALPHABET_A_TO_Z.map(item => `
+                <button onclick="speakIndonesian('Huruf ${item.letter}. ${item.letter} untuk ${item.word}')" 
+                    class="btn-kid bg-gradient-to-b from-sky-50 to-sky-100 hover:from-yellow-100 hover:to-amber-100 border-4 border-sky-300 rounded-2xl p-2.5 flex flex-col items-center text-center">
+                    <div class="text-2xl font-extrabold text-sky-700">${item.letter}${item.letter.toLowerCase()}</div>
+                    <div class="text-3xl my-1">${item.emoji}</div>
+                    <div class="text-xs font-bold text-gray-700">${item.word}</div>
+                    <span class="mt-1 text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded-full">🔊 Bunyi</span>
+                </button>
+            `).join('');
+
+            const sukuContainer = document.getElementById('dict-content-suku');
+            sukuContainer.innerHTML = SYLLABLE_FAMILIES.map(fam => `
+                <div class="bg-amber-50 border-4 border-amber-300 rounded-2xl p-3">
+                    <div class="font-bold text-amber-900 text-sm mb-2">Keluarga Suku Kata "${fam.consonant}":</div>
+                    <div class="grid grid-cols-5 gap-2">
+                        ${fam.syllables.map((syl, i) => `
+                            <button onclick="speakIndonesian('${syl}. Contohnya ${fam.examples[i].replace(/[^a-zA-Z -]/g, '')}')" 
+                                class="btn-kid bg-white hover:bg-yellow-200 border-2 border-amber-400 rounded-xl p-2 text-center">
+                                <div class="text-lg md:text-xl font-extrabold text-purple-700">🔊 ${syl}</div>
+                                <div class="text-[11px] font-bold text-gray-600 mt-0.5">${fam.examples[i]}</div>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openDictionaryModal() {
+            populateDictionaryModal();
+            document.getElementById('dictionary-modal').classList.remove('hidden');
+            playSoundEffect('pop');
+        }
+
+        function closeDictionaryModal() {
+            document.getElementById('dictionary-modal').classList.add('hidden');
+        }
+
+        function switchDictTab(tab) {
+            const az = document.getElementById('dict-content-az');
+            const suku = document.getElementById('dict-content-suku');
+            const btnAz = document.getElementById('dict-tab-az');
+            const btnSuku = document.getElementById('dict-tab-suku');
+            if (tab === 'az') {
+                az.classList.remove('hidden');
+                suku.classList.add('hidden');
+                btnAz.className = 'btn-kid bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-sm';
+                btnSuku.className = 'btn-kid bg-purple-100 text-purple-800 px-4 py-2 rounded-xl font-bold text-sm';
+            } else {
+                az.classList.add('hidden');
+                suku.classList.remove('hidden');
+                btnSuku.className = 'btn-kid bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-sm';
+                btnAz.className = 'btn-kid bg-purple-100 text-purple-800 px-4 py-2 rounded-xl font-bold text-sm';
+            }
+        }
+
+        function openProgressModal() {
+            const container = document.getElementById('progress-details');
+            const zones = [
+                { id: 1, name: '1. Dunia Huruf (A–Z)', color: 'emerald' },
+                { id: 2, name: '2. Petualangan Suku Kata (BA-BI-BU)', color: 'amber' },
+                { id: 3, name: '3. Misi Membaca Kata', color: 'pink' },
+                { id: 4, name: '4. Membaca Kalimat Sederhana', color: 'purple' }
+            ];
+
+            const totalDone = gameState.completedStations.size;
+            const totalAll = WORLD_STATIONS.length;
+            const overallPct = Math.round((totalDone / totalAll) * 100);
+
+            container.innerHTML = `
+                <div class="bg-sky-50 border-4 border-sky-300 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-bold text-sky-700">NAMA ANAK</div>
+                        <div class="text-2xl font-extrabold text-sky-900">${gameState.avatarEmoji} ${gameState.playerName}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs font-bold text-amber-700">CAPAIAN TOTAL</div>
+                        <div class="text-2xl font-extrabold text-amber-600">⭐ ${gameState.stars} Bintang (${overallPct}%)</div>
+                    </div>
+                </div>
+
+                ${zones.map(z => {
+                    const stInZone = WORLD_STATIONS.filter(s => s.zone === z.id);
+                    const doneInZone = stInZone.filter(s => gameState.completedStations.has(s.id));
+                    const pct = Math.round((doneInZone.length / stInZone.length) * 100);
+                    return `
+                        <div class="bg-gray-50 border-2 border-gray-200 rounded-2xl p-3.5">
+                            <div class="flex justify-between font-bold text-sm md:text-base text-gray-800 mb-1">
+                                <span>${z.name}</span>
+                                <span>${doneInZone.length} / ${stInZone.length} Pos (${pct}%)</span>
+                            </div>
+                            <div class="w-full h-4 bg-gray-200 rounded-full overflow-hidden mb-2">
+                                <div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${pct}%"></div>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                ${stInZone.map(st => {
+                                    const done = gameState.completedStations.has(st.id);
+                                    return `<span class="text-xs px-2.5 py-1 rounded-lg font-bold ${done ? 'bg-emerald-100 text-emerald-800 border border-emerald-400' : 'bg-gray-200 text-gray-600'}">
+                                        ${done ? '✅' : '⏳'} ${st.label}
+                                    </span>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+
+            document.getElementById('progress-modal').classList.remove('hidden');
+            playSoundEffect('pop');
+        }
+
+        function closeProgressModal() {
+            document.getElementById('progress-modal').classList.add('hidden');
+        }
+
+        function openCertificateModal() {
+            document.getElementById('cert-child-name').textContent = gameState.playerName;
+            document.getElementById('cert-stars').textContent = `⭐ ${gameState.stars}`;
+            const doneCount = gameState.completedStations.size;
+            document.getElementById('cert-missions').textContent = `${doneCount} / ${WORLD_STATIONS.length}`;
+
+            let rank = 'Petualang Pemula 🌱';
+            if (doneCount >= 15) rank = 'Juara Literasi Utama 👑';
+            else if (doneCount >= 8) rank = 'Pembaca Cilik Hebat 🌟';
+            else if (doneCount >= 3) rank = 'Sahabat Huruf Ceria 🎈';
+            document.getElementById('cert-rank').textContent = rank;
+
+            const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('cert-date').textContent = today;
+
+            document.getElementById('certificate-modal').classList.remove('hidden');
+            launchConfetti();
+            speakIndonesian(`Selamat ${gameState.playerName}! Ini adalah sertifikat bintang literasimu!`);
+        }
+
+        function closeCertificateModal() {
+            document.getElementById('certificate-modal').classList.add('hidden');
+        }
+
+        // Confetti Celebration Overlay
+        const confettiParticles = [];
+        function launchConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const colors = ['#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#a855f7', '#facc15'];
+            for (let i = 0; i < 65; i++) {
+                confettiParticles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 16,
+                    vy: (Math.random() - 0.8) * 16,
+                    size: 8 + Math.random() * 8,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 1.0
+                });
+            }
+            requestAnimationFrame(updateConfetti);
+        }
+
+        function updateConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = confettiParticles.length - 1; i >= 0; i--) {
+                const p = confettiParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.35; // gravity
+                p.life -= 0.016;
+                if (p.life <= 0) {
+                    confettiParticles.splice(i, 1);
+                } else {
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                }
+            }
+            if (confettiParticles.length > 0) {
+                requestAnimationFrame(updateConfetti);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = function () {
+            loadSavedState();
+            init3DWorld();
+            setupControls();
+            animateLoop();
+        };
+    </script>
+</body>
+</html>
